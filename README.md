@@ -1,7 +1,10 @@
-# RELATÓRIO DE IMPLEMENTAÇÃO DE SERVIÇOS AWS
+## Arquitetura AWS — FarmaHub Distribuição
+
 **Data:** 28 de abril de 2026
+
 **Empresa:** FarmaHub Distribuição
-**Responsável:** Gabriel
+
+**Responsável:** Gabriel Veras
 
 ---
 
@@ -41,17 +44,7 @@ Para o perfil da FarmaHub, a estratégia de classes de armazenamento será:
   Standard.
 
 A transição entre classes será gerenciada automaticamente via **S3 Lifecycle Policies**,
-sem intervenção manual. Adicionalmente, será habilitado o **S3 Object Lock** no modo
-Compliance para registros sujeitos à rastreabilidade ANVISA, garantindo imutabilidade
-pelo período legal exigido.
-
-**Sobre o AWS Glue:** para o porte da FarmaHub, o Glue não é necessário nesta etapa.
-A catalogação dos dados será feita via **Amazon Athena** integrado ao **AWS Glue Data
-Catalog** de forma passiva — os crawlers registram os schemas sem necessidade de jobs
-ETL dedicados. Transformações pontuais podem ser executadas com scripts Python via
-**AWS Lambda**, reduzindo custo e complexidade operacional. O Glue só será reconsiderado
-se o volume de dados ou a complexidade das transformações crescerem além do que Lambda
-suporta (execuções acima de 15 minutos ou pipelines complexos com múltiplas fontes).
+sem intervenção manual.
 
 **Prazo estimado:** 4 semanas
 *(Semanas 1–2: inventário e mapeamento de dados legados; Semanas 3–4: migração,
@@ -64,9 +57,7 @@ físicos ou NAS com custo médio de R$ 0,08–0,12/GB/mês, considerando hardwar
 energia, licença e manutenção. O S3 Standard-IA e Glacier reduzem esse custo para
 R$ 0,02–0,04/GB/mês para a maior parte do volume histórico. O ganho de 30–35% é
 conservador porque considera que uma parcela relevante dos dados permanecerá em
-Standard (acesso frequente), sem benefício de tiering. Estimativas acima de 40% assumem
-que a maioria dos dados é fria — o que pode não ser verdade nos primeiros meses
-pós-migração.
+Standard (acesso frequente), sem benefício de tiering. 
 
 ---
 
@@ -105,9 +96,7 @@ configuração das filas SQS e testes de carga)*
 para executar rotinas que, na prática, rodam por minutos ao dia — perfil típico de
 empresas deste porte. Um servidor EC2 t3.medium rodando 24/7 custa aproximadamente
 USD 30/mês. O equivalente em Lambda para as mesmas rotinas, com execuções de 1–2
-minutos distribuídas ao longo do dia, ficaria abaixo de USD 5/mês. O ganho de 50–60%
-é realista para 2–3 servidores substituídos, mas não deve ser extrapolado para
-infraestrutura maior sem inventário preciso das cargas atuais.
+minutos distribuídas ao longo do dia, ficaria abaixo de USD 5/mês. 
 
 ---
 
@@ -122,12 +111,6 @@ foco em análise de rotas de distribuição, sazonalidade de demanda e previsão
 necessidade por região. O modelo Serverless cobra por **RPU-segundo** (Redshift
 Processing Unit), sem custo de infraestrutura parada — adequado para empresas deste
 porte que não têm equipe de analytics rodando queries continuamente.
-
-O Redshift se justifica aqui em detrimento do Athena puro por dois motivos: (1) o
-volume de dados logísticos históricos tende a crescer rapidamente em distribuidoras,
-e queries complexas com múltiplos joins sobre S3 no Athena se tornam lentas e caras
-conforme o volume aumenta; (2) o Redshift permite criar **views materializadas** e
-**tabelas agregadas** que aceleram consultas recorrentes sem re-escanear o lake inteiro.
 
 A ingestão de dados do S3 será feita via **COPY command** e complementada com
 **Redshift Spectrum** para consultas híbridas — dados quentes no warehouse, dados
@@ -156,29 +139,23 @@ locais, a economia pode ser maior, mas manter ao menos uma ferramenta de visuali
 
 | Etapa | Serviços | Prazo | Ganho Estimado (Custos Computacionais) |
 |---|---|---|---|
-| 1 | S3 com tiering + Athena | 4 semanas | 30–35% em armazenamento |
+| 1 | S3 com tiering | 4 semanas | 30–35% em armazenamento |
 | 2 | Lambda + EventBridge + SQS | 4 semanas | 50–60% em computação |
 | 3 | Redshift Serverless | 4 semanas | 40–50% em analytics |
 
 **Prazo total:** 12 semanas (migração faseada com validação entre etapas)
 
 A projeção consolidada de redução de custos computacionais no primeiro ano situa-se
-entre **35–45%**, considerando o perfil B2B intermediário-pequeno da FarmaHub. Estimativas
-acima desse intervalo exigem baseline detalhado de custos atuais, que deve constar no
-anexo de ROI como premissa obrigatória antes do início da implementação.
-
-Dois requisitos transversais a todas as etapas, não negociáveis dado o ambiente
-regulado: configuração do **AWS CloudTrail** para auditoria de acesso aos dados e
-política de retenção alinhada às exigências ANVISA de rastreabilidade de lotes.
+entre **35–45%**, considerando o perfil B2B intermediário-pequeno da FarmaHub. 
 
 ---
 
 **Anexos**
 - Diagrama de arquitetura AWS
-- Cronograma de migração detalhado
-- Projeção de ROI com premissas explícitas de baseline
+
+<img width="1500" height="900" alt="Diagram" src="https://github.com/user-attachments/assets/33f37ab9-dd52-464b-b1f2-fd91af0bbe7c" />
 
 ---
 
 *Assinatura do Responsável pelo Projeto:*
-**Gabriel**
+**Gabriel Veras**
